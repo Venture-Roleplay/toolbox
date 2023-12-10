@@ -6,6 +6,8 @@ const fs = require("fs");
 
 const OBFUSCATE = true;
 
+let compileCount = 0;
+
 const production =
     process.argv.findIndex((argItem) => argItem === "--mode=production") >= 0;
 
@@ -17,8 +19,9 @@ const onRebuild = (context) => {
 
         Finish(context);
 
+        compileCount++;
         console.log(
-            `[${context}]: Rebuild succeeded` +
+            `[${context}]: Rebuild succeeded (${compileCount})` +
                 (res.warnings.length ? "Warnings: " + res.warnings : "")
         );
     };

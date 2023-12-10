@@ -14,5 +14,8 @@
     "@types/node": "^16.3.1",
     "esbuild": "^0.14.10",
     "javascript-obfuscator": "^4.1.0"
+  },
+  "dependencies": {
+    "@whitigol/menu-api": "^1.0.3"
   }
 }

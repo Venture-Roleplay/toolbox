@@ -1,3 +1,5 @@
 {
-    "test": true
+    "command": "devbox",
+    "control": 244,
+    "test": "test"
 }
