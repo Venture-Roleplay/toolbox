@@ -1,16 +1,12 @@
 import { GetClosestPlayer } from "../../../util/closestPlayer";
-import { ShowNotification } from "../../../util/showNotification";
 import {
     DrawTextOnScreenForDuration,
     DrawTextOnScreenThisFrame,
 } from "../../../util/drawTextOnScreen";
 import { delay } from "../../../util/general";
-import { DrawText3dOnEntity } from "../../../util/DrawText";
 import { Util } from "@whitigol/menu-api";
+import { cuffState, dragStateControlsCuffAnimation } from "./status";
 
-let cuffed = false;
-
-DecorRegister("test", 3);
 DecorRegister("cuffed", 3);
 on("onClientResourceStart", async (resourceName: string) => {
     if (GetCurrentResourceName() !== resourceName) {
@@ -28,6 +24,11 @@ on("onClientResourceStart", async (resourceName: string) => {
     DisableControlAction(0, 37, false);
     DisableControlAction(0, 44, false);
     DisableControlAction(0, 45, false);
+    DisableControlAction(0, Util.Control.MeleeAttack1, false);
+    DisableControlAction(0, Util.Control.MeleeAttack2, false);
+    DisableControlAction(0, Util.Control.MeleeAttackAlternate, false);
+    DisableControlAction(0, Util.Control.MeleeAttackHeavy, false);
+    DisableControlAction(0, Util.Control.MeleeAttackLight, false);
     DisableControlAction(0, Util.Control.VehicleMoveLeftRight, false);
 
     RequestAnimDict("mp_arresting");
@@ -61,6 +62,30 @@ on("whitigol.toolbox:cuff", async () => {
     const isCuffed = DecorGetInt(ped, "cuffed") === 1 ? true : false;
 
     if (!isCuffed) {
+        const playerPed = PlayerPedId();
+
+        // Task the player to walk behind the ped
+        const offset: number[] = GetOffsetFromEntityInWorldCoords(
+            ped,
+            0.0,
+            -1.25,
+            0.0
+        ) as [number, number, number];
+
+        SetEntityCoords(
+            playerPed,
+            offset[0],
+            offset[1],
+            offset[2] - 1,
+            false,
+            false,
+            false,
+            false
+        );
+
+        // Change player heading to face the ped
+        const heading = GetEntityHeading(ped);
+        SetEntityHeading(playerPed, heading + 10);
         PlayCopCuffingAnimation();
         emitNet(
             "whitigol.toolbox:cuffPlayer",
@@ -78,7 +103,34 @@ on("whitigol.toolbox:cuff", async () => {
         );
         DecorSetInt(ped, "cuffed", 1);
         await delay(1445);
+
+        emitNet(
+            "whitigol.toolbox:playCuffSound",
+            GetPlayerServerId(closestPlayer)
+        );
     } else {
+        const playerPed = PlayerPedId();
+        const offset: number[] = GetOffsetFromEntityInWorldCoords(
+            ped,
+            0.0,
+            -1.1,
+            0.0
+        ) as [number, number, number];
+
+        SetEntityCoords(
+            playerPed,
+            offset[0],
+            offset[1],
+            offset[2] - 1,
+            false,
+            false,
+            false,
+            false
+        );
+
+        const heading = GetEntityHeading(ped);
+        SetEntityHeading(playerPed, heading);
+
         PlayCopUncuffingAnimation();
         emitNet(
             "whitigol.toolbox:uncuffPlayer",
@@ -96,6 +148,11 @@ on("whitigol.toolbox:cuff", async () => {
         );
         DecorSetInt(ped, "cuffed", 0);
         await delay(1015);
+
+        emitNet(
+            "whitigol.toolbox:playUncuffSound",
+            GetPlayerServerId(closestPlayer)
+        );
     }
 });
 
@@ -112,12 +169,15 @@ onNet("whitigol.toolbox:cuffPlayer", async () => {
         true,
         2891
     );
+    FreezeEntityPosition(ped, true);
     DecorSetInt(ped, "cuffed", 1);
+    cuffState(true);
     await delay(2891);
+    FreezeEntityPosition(ped, false);
     let cuffTick = setTick(async () => {
         while (true) {
             await delay(0);
-            const isCuffed = DecorGetInt(ped, "cuffed") === 1 ? true : false;
+            const isCuffed = cuffState();
             DrawTextOnScreenThisFrame(
                 "~r~You are cuffed.",
                 0.08,
@@ -127,11 +187,16 @@ onNet("whitigol.toolbox:cuffPlayer", async () => {
                 0,
                 false
             );
+
             if (
                 isCuffed &&
                 !IsEntityPlayingAnim(ped, "mp_arresting", "idle", 3)
             ) {
+                if (dragStateControlsCuffAnimation()) {
+                    return;
+                }
                 await delay(2000);
+                ClearPedTasksImmediately(ped);
                 TaskPlayAnim(
                     ped,
                     "mp_arresting",
@@ -148,11 +213,17 @@ onNet("whitigol.toolbox:cuffPlayer", async () => {
             }
             SetEnableHandcuffs(ped, true);
             DisablePlayerFiring(ped, true);
+            SetCurrentPedWeapon(ped, GetHashKey("WEAPON_UNARMED"), true);
             DisableControlAction(0, 24, true);
             DisableControlAction(0, 25, true);
             DisableControlAction(0, 37, true);
             DisableControlAction(0, 44, true);
             DisableControlAction(0, 45, true);
+            DisableControlAction(0, Util.Control.MeleeAttack1, true);
+            DisableControlAction(0, Util.Control.MeleeAttack2, true);
+            DisableControlAction(0, Util.Control.MeleeAttackAlternate, true);
+            DisableControlAction(0, Util.Control.MeleeAttackHeavy, true);
+            DisableControlAction(0, Util.Control.MeleeAttackLight, true);
             DisableControlAction(0, Util.Control.VehicleMoveLeftRight, true);
             if (!isCuffed) {
                 ClearPedTasksImmediately(ped);
@@ -163,6 +234,15 @@ onNet("whitigol.toolbox:cuffPlayer", async () => {
                 DisableControlAction(0, 37, false);
                 DisableControlAction(0, 44, false);
                 DisableControlAction(0, 45, false);
+                DisableControlAction(0, Util.Control.MeleeAttack1, false);
+                DisableControlAction(0, Util.Control.MeleeAttack2, false);
+                DisableControlAction(
+                    0,
+                    Util.Control.MeleeAttackAlternate,
+                    false
+                );
+                DisableControlAction(0, Util.Control.MeleeAttackHeavy, false);
+                DisableControlAction(0, Util.Control.MeleeAttackLight, false);
                 DisableControlAction(
                     0,
                     Util.Control.VehicleMoveLeftRight,
@@ -186,10 +266,13 @@ onNet("whitigol.toolbox:uncuffPlayer", async () => {
         255,
         0,
         true,
-        1015
+        5000
     );
+    FreezeEntityPosition(ped, true);
+    await delay(5000);
     DecorSetInt(ped, "cuffed", 0);
-    await delay(1015);
+    cuffState(false);
+    FreezeEntityPosition(ped, false);
     SetEnableHandcuffs(ped, false);
     DisablePlayerFiring(ped, false);
     DisableControlAction(0, 24, false);
@@ -197,6 +280,13 @@ onNet("whitigol.toolbox:uncuffPlayer", async () => {
     DisableControlAction(0, 37, false);
     DisableControlAction(0, 44, false);
     DisableControlAction(0, 45, false);
+    DisableControlAction(0, Util.Control.MeleeAttack1, false);
+    DisableControlAction(0, Util.Control.MeleeAttack2, false);
+    DisableControlAction(0, Util.Control.MeleeAttackAlternate, false);
+    DisableControlAction(0, Util.Control.MeleeAttackHeavy, false);
+    DisableControlAction(0, Util.Control.MeleeAttackLight, false);
+    DisableControlAction(0, Util.Control.VehicleMoveLeftRight, false);
+    ClearPedTasksImmediately(ped);
 });
 
 async function PlayCopCuffingAnimation() {
@@ -213,7 +303,7 @@ async function PlayCopCuffingAnimation() {
         8,
         8,
         3844,
-        16,
+        0,
         0,
         false,
         false,
@@ -235,7 +325,7 @@ async function PlayPlayerCuffingAnimation() {
         8,
         8,
         -1,
-        16,
+        0,
         0,
         true,
         true,
@@ -278,7 +368,7 @@ async function PlayPlayerUncuffingAnimation() {
         "b_uncuff",
         8,
         8,
-        -1,
+        5000,
         0,
         0,
         false,
@@ -286,70 +376,3 @@ async function PlayPlayerUncuffingAnimation() {
         false
     );
 }
-
-// RegisterCommand(
-//     "status",
-//     () => {
-//         console.log(
-//             "Player Ped: " + GetPlayerPed(GetPlayerServerId(PlayerId()))
-//         );
-//         console.log("Cuff Status: " + DecorGetInt(PlayerPedId(), "cuffed"));
-//     },
-//     false
-// );
-
-// RegisterCommand(
-//     "get",
-//     () => {
-//         console.log(PlayerPedId());
-//         console.log(GetPlayerPed(GetPlayerServerId(PlayerId())));
-//         console.log(DecorGetInt(PlayerPedId(), "test"));
-//     },
-//     false
-// );
-
-// RegisterCommand(
-//     "settest",
-//     () => {
-//         const current = DecorGetInt(PlayerPedId(), "test");
-//         DecorSetInt(PlayerPedId(), "test", current === 0 ? 1 : 0);
-//         console.log("Setting to " + DecorGetInt(PlayerPedId(), "test"));
-//     },
-//     false
-// );
-
-// setTick(async () => {
-//     while (true) {
-//         await delay(0);
-//         // Get players in a radius of 5 units, and show a 3d text above their head with their test decor
-//         const players = GetActivePlayers();
-//         const ply = PlayerPedId();
-//         const playerCoords = GetEntityCoords(ply, false);
-//         players.forEach((player: number) => {
-//             const ped = GetPlayerPed(player);
-//             const pedCoords = GetEntityCoords(ped, false);
-//             const distance = GetDistanceBetweenCoords(
-//                 playerCoords[0],
-//                 playerCoords[1],
-//                 playerCoords[2],
-//                 pedCoords[0],
-//                 pedCoords[1],
-//                 pedCoords[2],
-//                 true
-//             );
-//             if (distance <= 5) {
-//                 if (player !== PlayerId()) {
-//                     DrawTextOnScreenThisFrame(
-//                         DecorGetInt(ped, "test").toString(),
-//                         0.5,
-//                         0.5,
-//                         0.55,
-//                         255,
-//                         0,
-//                         true
-//                     );
-//                 }
-//             }
-//         });
-//     }
-// });

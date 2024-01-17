@@ -9,7 +9,7 @@
     "watch": "node build.js"
   },
   "devDependencies": {
-    "@citizenfx/client": "latest",
+    "@citizenfx/client": "2.0.7190-1",
     "@citizenfx/server": "latest",
     "@types/node": "^16.3.1",
     "esbuild": "^0.14.10",

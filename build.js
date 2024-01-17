@@ -73,6 +73,7 @@ function Finish(context) {
             debugProtection: false,
             disableConsoleOutput: false,
         });
+
         fs.writeFileSync(
             `dist/${context}.js`,
             obfuscatedCode.getObfuscatedCode()
@@ -91,4 +92,50 @@ function Finish(context) {
     fs.mkdirSync(`${dir}/dist`);
     fs.copyFileSync(`dist/client.js`, `${dir}/dist/client.js`);
     fs.copyFileSync(`dist/server.js`, `${dir}/dist/server.js`);
+
+    // Stream Files
+    if (fs.existsSync(`stream`)) {
+        fs.existsSync(`${dir}/stream`) &&
+            fs.rmSync(`${dir}/stream`, { recursive: true });
+        fs.mkdirSync(`${dir}/stream`);
+
+        // copy all files in stream, and subfolders, with files inside them, to the output dir/stream
+        const copyStreamFiles = (dir, target) => {
+            fs.readdirSync(dir).forEach((file) => {
+                const filePath = `${dir}/${file}`;
+                const targetPath = `${target}/${file}`;
+                if (fs.lstatSync(filePath).isDirectory()) {
+                    fs.mkdirSync(targetPath);
+                    copyStreamFiles(filePath, targetPath);
+                } else {
+                    fs.copyFileSync(filePath, targetPath);
+                }
+            });
+        };
+
+        copyStreamFiles("stream", `${dir}/stream`);
+    }
+
+    // NUI Files
+    if (fs.existsSync("nui")) {
+        fs.existsSync(`${dir}/nui`) &&
+            fs.rmSync(`${dir}/nui`, { recursive: true });
+        fs.mkdirSync(`${dir}/nui`);
+
+        // copy all files in nui, and subfolders, with files inside them, to the output dir/nui
+        const copyNuiFiles = (dir, target) => {
+            fs.readdirSync(dir).forEach((file) => {
+                const filePath = `${dir}/${file}`;
+                const targetPath = `${target}/${file}`;
+                if (fs.lstatSync(filePath).isDirectory()) {
+                    fs.mkdirSync(targetPath);
+                    copyNuiFiles(filePath, targetPath);
+                } else {
+                    fs.copyFileSync(filePath, targetPath);
+                }
+            });
+        };
+
+        copyNuiFiles("nui", `${dir}/nui`);
+    }
 }

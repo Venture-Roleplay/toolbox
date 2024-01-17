@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@citizenfx/client@latest":
-  version "2.0.7080-1"
-  resolved "https://registry.yarnpkg.com/@citizenfx/client/-/client-2.0.7080-1.tgz#768784436bb1489c7aaa0808f7e56e9472f9bbbe"
-  integrity sha512-xPfKcXalIqignRSATArDkTIBZ780NYhkMfA+OXbTXlxj2UgTUk0hLYUjp3U1M3cVPQvK7OusNT7maat56ce0Hw==
+"@citizenfx/client@2.0.7190-1":
+  version "2.0.7190-1"
+  resolved "https://registry.yarnpkg.com/@citizenfx/client/-/client-2.0.7190-1.tgz#23f5934c0fc21921ef938f4f50bfacc6dded1247"
+  integrity sha512-gjztD0SqulSJgW9wyWdGKSE2kfK36eVYUG6H1jN/fXI4Nh7GAtJS2EzWUKxUF+QOdk2zYm4tVset+dudFMUcIg==
 
 "@citizenfx/server@latest":
   version "2.0.7080-1"
